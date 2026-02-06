@@ -1,4 +1,4 @@
-# Release Notes - v1.0.32 (Stable)
+# Release Notes - v1.0.33 (Stable)
 
 Esta é a primeira versão considerada **ESTÁVEL** do Sistema Infotronic, consolidando diversas melhorias de UI/UX, correções de banco de dados e refinamentos no fluxo de gerenciamento de produtos.
 
@@ -6,6 +6,7 @@ Esta é a primeira versão considerada **ESTÁVEL** do Sistema Infotronic, conso
 
 ### 🛠️ CMS & Dashboard
 - **Layout 50/50:** A visualização de produtos agora é dividida igualmente entre a lista e o editor, proporcionando um ambiente de trabalho mais equilibrado.
+- **Limpeza da Hero:** Removidas informações de estatísticas (+15 anos, Suporte 24/7) do banner principal para um visual mais limpo e moderno.
 - **UX de Preços:** Adicionado o prefixo **`R$`** fixo no campo de valor, facilitando a identificação visual e evitando erros de preenchimento.
 - **Espaçamento Refinado:** Ajuste de margens em toda a interface do CMS, garantindo que menus e filtros não fiquem sobrepostos aos componentes de dados.
 - **Botão de Edição:** Correção na confiabilidade do clique nas ações da tabela, garantindo abertura imediata do formulário.
@@ -23,4 +24,4 @@ Esta é a primeira versão considerada **ESTÁVEL** do Sistema Infotronic, conso
 - **Integração Gemini:** Geração automática de descrições comerciais para equipamentos, otimizando o tempo de cadastro.
 
 ---
-**Status:** ✅ Estável | **Versão:** 1.0.32 | **Data:** 05/02/2026
+**Status:** ✅ Estável | **Versão:** 1.0.33 | **Data:** 05/02/2026

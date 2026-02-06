@@ -1,7 +1,7 @@
 {
   "name": "infotronic---informática-e-segurança",
   "private": true,
-  "version": "1.0.32",
+  "version": "1.0.33",
   "type": "module",
   "scripts": {
     "dev": "vite",
