@@ -1,0 +1,8 @@
+
+{
+  "name": "Infotronic - Informática e Segurança",
+  "description": "Uma landing page profissional para catálogo de produtos de informática e sistemas de segurança, com carrinho para pedidos via WhatsApp e sistema de gerenciamento de conteúdo (CMS).",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
