@@ -79,7 +79,10 @@ const Footer: React.FC<FooterProps> = ({ settings }) => {
         </div>
 
         <div className="pt-10 border-t border-white/5 flex flex-col items-center md:items-start md:flex-row justify-between text-[9px] md:text-[10px] text-center md:text-left font-black uppercase tracking-[0.2em] md:tracking-[0.3em]">
-          <p className="max-w-[300px] md:max-w-none">© 2024 INFOTRONIC INFORMÁTICA E ELETRÔNICA. PROJETADO PARA PERFORMANCE.</p>
+          <div className="space-y-2">
+            <p className="max-w-[300px] md:max-w-none">© 2024 INFOTRONIC INFORMÁTICA E ELETRÔNICA. PROJETADO PARA PERFORMANCE.</p>
+            {settings?.cnpj && <p className="text-slate-500">CNPJ: {settings.cnpj}</p>}
+          </div>
           <div className="flex space-x-6 md:space-x-8 mt-6 md:mt-0 opacity-60">
             <a href="#" className="hover:text-brand-red">Privacidade</a>
             <a href="#" className="hover:text-brand-red">Compliance</a>

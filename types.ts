@@ -48,4 +48,5 @@ export interface Settings {
   address: string;
   instagram?: string;
   facebook?: string;
+  cnpj?: string;
 }

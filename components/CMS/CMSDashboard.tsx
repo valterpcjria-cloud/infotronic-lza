@@ -861,6 +861,36 @@ const CMSDashboard: React.FC<CMSDashboardProps> = ({
                       />
                     </div>
                   </div>
+
+                  <div>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 block mb-2">CNPJ da Empresa</label>
+                    <div className="relative">
+                      <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                      </div>
+                      <input
+                        className="w-full bg-white/5 border-2 border-transparent focus:border-brand-red rounded-2xl pl-12 pr-5 py-4 text-sm font-bold outline-none transition-all focus:bg-white/10"
+                        value={settings.cnpj || ''}
+                        onChange={e => {
+                          let val = e.target.value.replace(/\D/g, ''); // Remove non-digits
+                          if (val.length > 14) val = val.substring(0, 14);
+
+                          // Apply mask: 00.000.000/0000-00
+                          let masked = val;
+                          if (val.length > 2) masked = val.substring(0, 2) + '.' + val.substring(2);
+                          if (val.length > 5) masked = masked.substring(0, 6) + '.' + masked.substring(6);
+                          if (val.length > 8) masked = masked.substring(0, 10) + '/' + masked.substring(10);
+                          if (val.length > 12) masked = masked.substring(0, 15) + '-' + masked.substring(15);
+
+                          setSettings({ ...settings, cnpj: masked });
+                        }}
+                        placeholder="00.000.000/0000-00"
+                        maxLength={18}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
 

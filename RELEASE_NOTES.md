@@ -1,4 +1,20 @@
-# Release Notes - v1.0.58 (Latest)
+# Release Notes - v1.0.59 (Latest)
+
+Novo campo CNPJ com máscara e exibição no rodapé.
+
+## 🚀 Novidades e Correções
+
+### ⚙️ Configurações
+- **Campo CNPJ:** Adicionado novo campo de CNPJ nas configurações do painel administrativo.
+- **Máscara Automática:** Implementada máscara de preenchimento (`00.000.000/0000-00`) para facilitar a entrada de dados.
+
+### 🎨 Interface
+- **Rodapé:** O CNPJ da empresa agora é exibido automaticamente no rodapé do site, logo abaixo dos direitos autorais.
+
+---
+**Status:** ✅ Estável | **Versão:** 1.0.59 | **Data:** 10/02/2026
+
+# Release Notes - v1.0.58 (Stable)
 
 Ajuste de UI: Remoção do botão de solicitação de visita na Hero.
 
