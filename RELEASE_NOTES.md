@@ -1,4 +1,16 @@
-# Release Notes - v1.0.57 (Latest)
+# Release Notes - v1.0.58 (Latest)
+
+Ajuste de UI: Remoção do botão de solicitação de visita na Hero.
+
+## 🚀 Novidades e Correções
+
+### 🎨 Interface
+- **Hero Section:** Removido o botão "Solicitar Visita" para simplificar a jornada do usuário e focar no catálogo.
+
+---
+**Status:** ✅ Estável | **Versão:** 1.0.58 | **Data:** 10/02/2026
+
+# Release Notes - v1.0.57 (Stable)
 
 Ajuste de visibilidade: usuários criados por Admins agora aparecem mesmo sem a migração do banco.
 

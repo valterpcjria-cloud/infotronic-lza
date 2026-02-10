@@ -42,9 +42,6 @@ const Hero: React.FC = () => {
               >
                 Ver Catálogo
               </a>
-              <button className="bg-white/5 hover:bg-white/10 text-white backdrop-blur-md px-8 md:px-10 py-3.5 md:py-4 rounded-xl font-black transition-all border border-white/20 uppercase tracking-wider text-sm md:text-base">
-                Solicitar Visita
-              </button>
             </div>
 
 
