@@ -29,7 +29,8 @@ const App: React.FC = () => {
     whatsapp_cart: WHATSAPP_NUMBER,
     address: 'Setor Comercial Norte, Quadra 01\nEdifício Corporate, DF',
     instagram: '',
-    facebook: ''
+    facebook: '',
+    cnpj: ''
   });
 
   // Sincronização com o Banco de Dados MySQL

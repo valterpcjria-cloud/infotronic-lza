@@ -1,4 +1,17 @@
-# Release Notes - v1.0.60 (Latest)
+# Release Notes - v1.0.61 (Latest)
+
+Ajuste de visibilidade do CNPJ no rodapé.
+
+## 🚀 Novidades e Correções
+
+### 🎨 Interface
+- **Posicionamento do CNPJ:** O CNPJ foi movido para a seção "Unidade Central" no rodapé, ficando logo abaixo do telefone para melhor visibilidade.
+- **Sincronização de Estado:** Melhorada a inicialização das configurações para garantir que o CNPJ seja carregado corretamente em todas as partes do site.
+
+---
+**Status:** ✅ Estável | **Versão:** 1.0.61 | **Data:** 10/02/2026
+
+# Release Notes - v1.0.60 (Stable)
 
 Atualização técnica: Sincronização de arquivos de migração.
 

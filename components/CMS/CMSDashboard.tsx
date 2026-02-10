@@ -34,7 +34,8 @@ const CMSDashboard: React.FC<CMSDashboardProps> = ({
     whatsapp_cart: '',
     address: '',
     instagram: '',
-    facebook: ''
+    facebook: '',
+    cnpj: ''
   });
 
   /* State Variables for Logic */

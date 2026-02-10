@@ -74,6 +74,16 @@ const Footer: React.FC<FooterProps> = ({ settings }) => {
                 </div>
                 <span className="font-black text-white text-base md:text-lg">{phone}</span>
               </li>
+              {settings?.cnpj && (
+                <li className="flex flex-col md:flex-row items-center md:items-start space-y-2 md:space-y-0 md:space-x-4 pt-2">
+                  <div className="p-2 bg-white/5 rounded-lg">
+                    <svg className="w-5 h-5 text-brand-red" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                  </div>
+                  <span className="font-bold text-slate-300 text-xs md:text-sm">CNPJ: {settings.cnpj}</span>
+                </li>
+              )}
             </ul>
           </div>
         </div>
@@ -81,7 +91,6 @@ const Footer: React.FC<FooterProps> = ({ settings }) => {
         <div className="pt-10 border-t border-white/5 flex flex-col items-center md:items-start md:flex-row justify-between text-[9px] md:text-[10px] text-center md:text-left font-black uppercase tracking-[0.2em] md:tracking-[0.3em]">
           <div className="space-y-2">
             <p className="max-w-[300px] md:max-w-none">© 2024 INFOTRONIC INFORMÁTICA E ELETRÔNICA. PROJETADO PARA PERFORMANCE.</p>
-            {settings?.cnpj && <p className="text-slate-500">CNPJ: {settings.cnpj}</p>}
           </div>
           <div className="flex space-x-6 md:space-x-8 mt-6 md:mt-0 opacity-60">
             <a href="#" className="hover:text-brand-red">Privacidade</a>
