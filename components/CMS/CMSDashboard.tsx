@@ -1,12 +1,13 @@
 
 import React, { useState, useRef, useMemo, useEffect } from 'react';
-import { Product, Category, Settings } from '../../types';
+import { Product, Category, Settings, User } from '../../types';
 import { generateProductDescription } from '../../services/geminiService';
 import { dbService, resolveImageUrl } from '../../services/dbService';
 
 interface CMSDashboardProps {
   products: Product[];
   categories: Category[];
+  userRole?: 'superadmin' | 'admin' | 'staff';
   setProducts: React.Dispatch<React.SetStateAction<Product[]>>;
   setCategories: React.Dispatch<React.SetStateAction<Category[]>>;
   onClose: () => void;
@@ -18,19 +19,22 @@ type StockFilter = 'all' | 'in_stock' | 'out_of_stock';
 const CMSDashboard: React.FC<CMSDashboardProps> = ({
   products,
   categories,
+  userRole = 'admin',
   setProducts,
   setCategories,
   onClose
 }) => {
   /* Existing imports and props */
-  const [activeTab, setActiveTab] = useState<'products' | 'categories' | 'settings'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'categories' | 'settings' | 'users'>('products');
   const [editingProduct, setEditingProduct] = useState<Partial<Product> | null>(null);
   const [editingCategory, setEditingCategory] = useState<Partial<Category> | null>(null);
   /* stats... */
   const [settings, setSettings] = useState<Settings>({
     whatsapp_main: '',
     whatsapp_cart: '',
-    address: ''
+    address: '',
+    instagram: '',
+    facebook: ''
   });
 
   /* State Variables for Logic */
@@ -40,9 +44,29 @@ const CMSDashboard: React.FC<CMSDashboardProps> = ({
   const [newSpecKey, setNewSpecKey] = useState('');
   const [newSpecValue, setNewSpecValue] = useState('');
 
+  // User Management State
+  const [users, setUsers] = useState<User[]>([]);
+  const [editingUser, setEditingUser] = useState<Partial<User> | null>(null);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+
   useEffect(() => {
     loadSettings();
-  }, []);
+    if (userRole === 'superadmin' || userRole === 'admin') {
+      loadUsers();
+    }
+  }, [userRole]);
+
+  const loadUsers = async () => {
+    setIsLoadingUsers(true);
+    try {
+      const data = await dbService.getUsers();
+      setUsers(data);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoadingUsers(false);
+    }
+  };
 
   const loadSettings = async () => {
     const data = await dbService.getSettings();
@@ -153,6 +177,32 @@ const CMSDashboard: React.FC<CMSDashboardProps> = ({
     }
   };
 
+  const handleSaveUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
+
+    try {
+      await dbService.saveUser(editingUser as User);
+      alert('Usuário salvo com sucesso!');
+      loadUsers();
+      setEditingUser(null);
+    } catch (error: any) {
+      console.error('Save error:', error);
+      alert(`Erro ao salvar usuário: ${error.message || 'Erro técnico'}`);
+    }
+  };
+
+  const handleDeleteUser = async (id: string) => {
+    if (confirm('Deseja realmente excluir este usuário?')) {
+      try {
+        await dbService.deleteUser(id);
+        loadUsers();
+      } catch (error) {
+        alert('Erro ao deletar usuário');
+      }
+    }
+  };
+
   const handleAiDescription = async () => {
     if (!editingProduct?.name) return;
     setIsGenerating(true);
@@ -186,44 +236,73 @@ const CMSDashboard: React.FC<CMSDashboardProps> = ({
 
   return (
     <div className="min-h-screen bg-slate-900 text-white p-8 overflow-y-auto">
-      {/* Tab Navigation */}
-      <div className="flex gap-2 p-1.5 bg-white/5 rounded-2xl border border-white/10 w-fit mb-10">
+      {/* Header with Navigation and Logout */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
+        <div className="flex gap-2 p-1.5 bg-white/5 rounded-2xl border border-white/10 w-fit">
+          <button
+            onClick={() => setActiveTab('products')}
+            className={`px-6 py-3 rounded-xl text-sm font-bold uppercase tracking-wide transition-all flex items-center gap-2 ${activeTab === 'products'
+              ? 'bg-brand-red text-white shadow-lg shadow-brand-red/25'
+              : 'text-slate-400 hover:text-white hover:bg-white/5'
+              }`}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+            </svg>
+            Produtos
+          </button>
+          <button
+            onClick={() => setActiveTab('categories')}
+            className={`px-6 py-3 rounded-xl text-sm font-bold uppercase tracking-wide transition-all flex items-center gap-2 ${activeTab === 'categories'
+              ? 'bg-brand-red text-white shadow-lg shadow-brand-red/25'
+              : 'text-slate-400 hover:text-white hover:bg-white/5'
+              }`}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+            </svg>
+            Categorias
+          </button>
+          {userRole !== 'staff' && (
+            <button
+              onClick={() => setActiveTab('settings')}
+              className={`px-6 py-3 rounded-xl text-sm font-bold uppercase tracking-wide transition-all flex items-center gap-2 ${activeTab === 'settings'
+                ? 'bg-brand-red text-white shadow-lg shadow-brand-red/25'
+                : 'text-slate-400 hover:text-white hover:bg-white/5'
+                }`}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              Configurações
+            </button>
+          )}
+
+          {(userRole === 'superadmin' || userRole === 'admin') && (
+            <button
+              onClick={() => setActiveTab('users')}
+              className={`px-6 py-3 rounded-xl text-sm font-bold uppercase tracking-wide transition-all flex items-center gap-2 ${activeTab === 'users'
+                ? 'bg-brand-red text-white shadow-lg shadow-brand-red/25'
+                : 'text-slate-400 hover:text-white hover:bg-white/5'
+                }`}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+              Usuários
+            </button>
+          )}
+        </div>
+
         <button
-          onClick={() => setActiveTab('products')}
-          className={`px-6 py-3 rounded-xl text-sm font-bold uppercase tracking-wide transition-all flex items-center gap-2 ${activeTab === 'products'
-            ? 'bg-brand-red text-white shadow-lg shadow-brand-red/25'
-            : 'text-slate-400 hover:text-white hover:bg-white/5'
-            }`}
+          onClick={onClose}
+          className="flex items-center gap-2 px-6 py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-xs font-black uppercase tracking-widest text-slate-400 hover:text-white transition-all group"
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+          <svg className="w-4 h-4 text-brand-red group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
           </svg>
-          Produtos
-        </button>
-        <button
-          onClick={() => setActiveTab('categories')}
-          className={`px-6 py-3 rounded-xl text-sm font-bold uppercase tracking-wide transition-all flex items-center gap-2 ${activeTab === 'categories'
-            ? 'bg-brand-red text-white shadow-lg shadow-brand-red/25'
-            : 'text-slate-400 hover:text-white hover:bg-white/5'
-            }`}
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-          </svg>
-          Categorias
-        </button>
-        <button
-          onClick={() => setActiveTab('settings')}
-          className={`px-6 py-3 rounded-xl text-sm font-bold uppercase tracking-wide transition-all flex items-center gap-2 ${activeTab === 'settings'
-            ? 'bg-brand-red text-white shadow-lg shadow-brand-red/25'
-            : 'text-slate-400 hover:text-white hover:bg-white/5'
-            }`}
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-          Configurações
+          Finalizar Sessão
         </button>
       </div>
 
@@ -246,6 +325,14 @@ const CMSDashboard: React.FC<CMSDashboardProps> = ({
                     {f === 'all' ? 'Todos os Itens' : f === 'in_stock' ? 'Em Estoque' : 'Sem Estoque'}
                   </button>
                 ))}
+
+                <button
+                  onClick={() => setEditingProduct({})}
+                  className="px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all bg-brand-red text-white border border-brand-red shadow-lg shadow-brand-red/20 ml-auto flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" /></svg>
+                  Novo Produto
+                </button>
               </div>
 
               <div className="bg-white/5 rounded-[32px] border border-white/10 overflow-hidden backdrop-blur-sm">
@@ -582,6 +669,16 @@ const CMSDashboard: React.FC<CMSDashboardProps> = ({
           <div className="grid lg:grid-cols-3 gap-12 items-start">
             {/* Category List Section */}
             <div className="lg:col-span-2 space-y-8">
+              <div className="flex justify-between items-center mb-6">
+                <div></div>
+                <button
+                  onClick={() => setEditingCategory({})}
+                  className="px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all bg-brand-red text-white border border-brand-red shadow-lg shadow-brand-red/20 flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" /></svg>
+                  Nova Categoria
+                </button>
+              </div>
               <div className="bg-white/5 rounded-[32px] border border-white/10 overflow-hidden backdrop-blur-sm">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left">
@@ -686,7 +783,7 @@ const CMSDashboard: React.FC<CMSDashboardProps> = ({
               )}
             </div>
           </div>
-        ) : (
+        ) : activeTab === 'settings' ? (
           <div className="max-w-2xl mx-auto bg-white/5 rounded-[40px] border border-white/10 p-10 backdrop-blur-md shadow-2xl">
             <form onSubmit={handleSaveSettings} className="space-y-8">
               <div className="flex flex-col items-center text-center gap-4 mb-10">
@@ -734,6 +831,37 @@ const CMSDashboard: React.FC<CMSDashboardProps> = ({
                     placeholder="Endereço completo..."
                   />
                 </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 block mb-2">Link Instagram</label>
+                    <div className="relative">
+                      <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500">
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" /></svg>
+                      </div>
+                      <input
+                        className="w-full bg-white/5 border-2 border-transparent focus:border-brand-red rounded-2xl pl-12 pr-5 py-4 text-sm font-bold outline-none transition-all focus:bg-white/10"
+                        value={settings.instagram || ''}
+                        onChange={e => setSettings({ ...settings, instagram: e.target.value })}
+                        placeholder="Ex: https://instagram.com/perfil"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 block mb-2">Link Facebook</label>
+                    <div className="relative">
+                      <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500">
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-3.596 0-5.192 1.583-5.192 4.615v3.385z" /></svg>
+                      </div>
+                      <input
+                        className="w-full bg-white/5 border-2 border-transparent focus:border-brand-red rounded-2xl pl-12 pr-5 py-4 text-sm font-bold outline-none transition-all focus:bg-white/10"
+                        value={settings.facebook || ''}
+                        onChange={e => setSettings({ ...settings, facebook: e.target.value })}
+                        placeholder="Ex: https://facebook.com/pagina"
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <button
@@ -746,6 +874,173 @@ const CMSDashboard: React.FC<CMSDashboardProps> = ({
                 <span>Salvar Configurações</span>
               </button>
             </form>
+          </div>
+        ) : (
+          /* USERS TAB */
+          <div className="grid lg:grid-cols-3 gap-12 items-start">
+            <div className="lg:col-span-2 space-y-8">
+              <div className="bg-white/5 rounded-[32px] border border-white/10 overflow-hidden backdrop-blur-sm">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left">
+                    <thead className="bg-white/5 text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">
+                      <tr>
+                        <th className="px-8 py-5">Usuário</th>
+                        <th className="px-8 py-5 text-center">Status</th>
+                        <th className="px-8 py-5">Função</th>
+                        <th className="px-8 py-5 text-right">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {users.map(u => (
+                        <tr key={u.id} className="hover:bg-white/[0.02] transition-colors group">
+                          <td className="px-8 py-5">
+                            <div>
+                              <p className="font-black text-sm uppercase tracking-tight">{u.name}</p>
+                              <p className="text-slate-500 text-xs font-mono">{u.username}</p>
+                            </div>
+                          </td>
+                          <td className="px-8 py-5 text-center">
+                            <span className={`text-[10px] font-black px-3 py-1.5 rounded-lg border ${u.is_active
+                              ? 'bg-green-500/10 text-green-400 border-green-500/20'
+                              : 'bg-slate-500/10 text-slate-400 border-slate-500/20'
+                              }`}>
+                              {u.is_active ? 'ATIVO' : 'INATIVO'}
+                            </span>
+                          </td>
+                          <td className="px-8 py-5">
+                            <span className={`text-[10px] font-black px-3 py-1.5 rounded-lg border ${u.role === 'superadmin'
+                              ? 'bg-purple-500/10 text-purple-400 border-purple-500/20'
+                              : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                              }`}>
+                              {u.role.toUpperCase()}
+                            </span>
+                          </td>
+                          <td className="px-8 py-5 text-right">
+                            <div className="flex justify-end space-x-2">
+                              <button
+                                onClick={() => setEditingUser(u)}
+                                className="p-3 bg-white/5 hover:bg-white/10 rounded-xl text-blue-400 transition-all border border-transparent hover:border-blue-400/30"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                              </button>
+                              <button
+                                onClick={() => handleDeleteUser(u.id)}
+                                className="p-3 bg-white/5 hover:bg-white/10 rounded-xl text-brand-red transition-all border border-transparent hover:border-brand-red/30"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <button
+                onClick={() => setEditingUser({ role: 'admin' })}
+                className="flex items-center gap-2 px-8 py-5 bg-brand-red text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-brand-red/20 hover:scale-105 transition-all"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" />
+                </svg>
+                Novo Usuário
+              </button>
+            </div>
+
+            <div className="lg:col-span-1">
+              {editingUser ? (
+                <div className="bg-white/5 rounded-[40px] border border-white/10 p-10 sticky top-28 backdrop-blur-md shadow-2xl">
+                  <h3 className="text-2xl font-black uppercase tracking-tighter mb-8 flex items-center">
+                    <span className="w-2 h-8 bg-brand-red rounded-full mr-4"></span>
+                    {editingUser.id ? 'Editar Usuário' : 'Novo Usuário'}
+                  </h3>
+
+                  <form onSubmit={handleSaveUser} className="space-y-6">
+                    <div>
+                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 block mb-2 ml-1">Nome Completo</label>
+                      <input
+                        className="w-full bg-white/5 border-2 border-transparent focus:border-brand-red rounded-2xl px-5 py-4 text-sm font-bold outline-none transition-all focus:bg-white/10"
+                        value={editingUser.name || ''}
+                        onChange={e => setEditingUser({ ...editingUser, name: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 block mb-2 ml-1">Usuário (Login)</label>
+                      <input
+                        className="w-full bg-white/5 border-2 border-transparent focus:border-brand-red rounded-2xl px-5 py-4 text-sm font-bold outline-none transition-all focus:bg-white/10"
+                        value={editingUser.username || ''}
+                        onChange={e => setEditingUser({ ...editingUser, username: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 block mb-2 ml-1">Senha {editingUser.id && '(Deixe em branco para manter)'}</label>
+                      <input
+                        type="password"
+                        className="w-full bg-white/5 border-2 border-transparent focus:border-brand-red rounded-2xl px-5 py-4 text-sm font-bold outline-none transition-all focus:bg-white/10"
+                        value={editingUser.password || ''}
+                        onChange={e => setEditingUser({ ...editingUser, password: e.target.value })}
+                        required={!editingUser.id}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 block mb-2 ml-1">Nível de Acesso</label>
+                      <select
+                        className="w-full bg-white/5 border-2 border-transparent focus:border-brand-red rounded-2xl px-5 py-4 text-sm font-bold outline-none transition-all focus:bg-white/10 appearance-none text-white"
+                        value={editingUser.role || 'admin'}
+                        onChange={e => setEditingUser({ ...editingUser, role: e.target.value as any })}
+                        required
+                      >
+                        <option value="staff" className="bg-slate-900">Colaborador (Produtos/Cats)</option>
+                        <option value="admin" className="bg-slate-900">Admin (Limitado)</option>
+                        {userRole === 'superadmin' && <option value="superadmin" className="bg-slate-900">SuperAdmin (Total)</option>}
+                      </select>
+                    </div>
+
+                    <div className="flex items-center space-x-3 p-4 bg-white/5 rounded-2xl border border-white/10">
+                      <input
+                        type="checkbox"
+                        id="user_active"
+                        className="w-5 h-5 accent-brand-red cursor-pointer"
+                        checked={editingUser.is_active !== false}
+                        onChange={e => setEditingUser({ ...editingUser, is_active: e.target.checked })}
+                      />
+                      <label htmlFor="user_active" className="text-sm font-bold uppercase tracking-tight cursor-pointer">
+                        Conta Ativa
+                      </label>
+                    </div>
+
+                    <div className="pt-6 flex flex-col space-y-3">
+                      <button
+                        type="submit"
+                        className="w-full bg-brand-red hover:bg-red-700 text-white font-black py-5 rounded-2xl text-xs uppercase tracking-widest transition-all shadow-xl shadow-brand-red/20 flex items-center justify-center space-x-2"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>
+                        <span>Salvar Usuário</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditingUser(null)}
+                        className="w-full bg-white/5 hover:bg-white/10 border border-white/10 py-5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all"
+                      >
+                        Descartar
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              ) : (
+                <div className="bg-white/5 rounded-[40px] border-2 border-dashed border-white/10 p-16 text-center flex flex-col items-center justify-center sticky top-28">
+                  <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mb-6">
+                    <svg className="w-8 h-8 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+                  </div>
+                  <p className="text-slate-500 font-black uppercase tracking-widest text-[10px] max-w-[180px] leading-relaxed">
+                    Selecione um usuário para editar ou use o botão para criar um novo.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         )
       }

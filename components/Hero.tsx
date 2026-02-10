@@ -15,10 +15,10 @@ const Hero: React.FC = () => {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-transparent via-transparent to-black/40"></div>
       </div>
 
-      <div className="container mx-auto px-4 relative z-10 py-20">
+      <div className="container mx-auto px-4 relative z-10 py-12 md:py-20">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           <div className="text-left animate-in slide-in-from-left duration-700">
-            <div className="inline-flex items-center bg-brand-red/10 border border-brand-red/20 text-brand-red text-xs font-black px-4 py-2 rounded-lg mb-8 tracking-[0.2em] uppercase">
+            <div className="inline-flex items-center bg-brand-red/10 border border-brand-red/20 text-brand-red text-[10px] md:text-xs font-black px-4 py-2 rounded-lg mb-6 md:mb-8 tracking-[0.2em] uppercase">
               <span className="relative flex h-2 w-2 mr-3">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-red opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-red"></span>
@@ -26,23 +26,23 @@ const Hero: React.FC = () => {
               Líder em Soluções Inteligentes
             </div>
 
-            <h1 className="text-5xl md:text-7xl font-black text-white mb-8 leading-[1.1] text-shadow">
-              INFRAESTRUTURA DE <br />
+            <h1 className="text-3xl sm:text-4xl md:text-7xl font-black text-white mb-6 md:mb-8 leading-[1.1] text-shadow">
+              INFRAESTRUTURA DE <br className="hidden md:block" />
               <span className="text-brand-red">ALTA PERFORMANCE</span>
             </h1>
 
-            <p className="text-slate-300 text-lg md:text-xl mb-12 leading-relaxed max-w-xl">
+            <p className="text-slate-300 text-base md:text-xl mb-8 md:mb-12 leading-relaxed max-w-xl">
               De workstations de elite a sistemas críticos de segurança eletrônica. A Infotronic entrega a tecnologia que o seu futuro exige.
             </p>
 
-            <div className="flex flex-wrap gap-5">
+            <div className="flex flex-col sm:flex-row gap-4 md:gap-5">
               <a
                 href="#catalog"
-                className="bg-brand-red hover:bg-red-700 text-white px-10 py-4 rounded-xl font-black transition-all transform hover:-translate-y-1 shadow-2xl shadow-brand-red/40 uppercase tracking-wider"
+                className="bg-brand-red hover:bg-red-700 text-white px-8 md:px-10 py-3.5 md:py-4 rounded-xl font-black transition-all transform hover:-translate-y-1 shadow-2xl shadow-brand-red/40 uppercase tracking-wider text-center text-sm md:text-base"
               >
                 Ver Catálogo
               </a>
-              <button className="bg-white/5 hover:bg-white/10 text-white backdrop-blur-md px-10 py-4 rounded-xl font-black transition-all border border-white/20 uppercase tracking-wider">
+              <button className="bg-white/5 hover:bg-white/10 text-white backdrop-blur-md px-8 md:px-10 py-3.5 md:py-4 rounded-xl font-black transition-all border border-white/20 uppercase tracking-wider text-sm md:text-base">
                 Solicitar Visita
               </button>
             </div>

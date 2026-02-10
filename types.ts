@@ -22,11 +22,23 @@ export interface CartItem {
   quantity: number;
 }
 
+
+export interface User {
+  id: string;
+  username: string;
+  name: string;
+  role: 'superadmin' | 'admin' | 'staff';
+  is_active?: boolean | number;
+  created_at?: string;
+  password?: string; // Only used when creating/updating
+}
+
 export interface AppState {
   products: Product[];
   categories: Category[];
   cart: CartItem[];
   isAdmin: boolean;
+  userRole?: 'superadmin' | 'admin' | 'staff';
   settings: Settings;
 }
 
@@ -34,4 +46,6 @@ export interface Settings {
   whatsapp_main: string;
   whatsapp_cart: string;
   address: string;
+  instagram?: string;
+  facebook?: string;
 }

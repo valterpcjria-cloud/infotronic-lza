@@ -11,6 +11,19 @@ define('EXPECTED_API_KEY', 'infotronic_secure_key_2024_xyz'); // Deve coincidir 
 ini_set('display_errors', 0);
 error_reporting(0);
 
+// Fallback para getallheaders em servidores Nginx/FastCGI
+if (!function_exists('getallheaders')) {
+    function getallheaders() {
+        $headers = [];
+        foreach ($_SERVER as $name => $value) {
+            if (substr($name, 0, 5) == 'HTTP_') {
+                $headers[str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))))] = $value;
+            }
+        }
+        return $headers;
+    }
+}
+
 // Headers CORS
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
@@ -87,11 +100,11 @@ if ($apiKey !== EXPECTED_API_KEY) {
 }
 
 // --- CONFIGURAÇÕES DO BANCO DE DADOS ---
-// IMPORTANTE: Insira suas credenciais reais abaixo para conectar ao MySQL
+// IMPORTANT: Estas credenciais devem ser fornecidas pelo provedor de hospedagem (HostGator/CPainel)
 $host = 'localhost';
-$db   = 'infotronic'; // Altere se o nome do banco na HostGator for diferente
+$db   = 'meusis41_infotronic_db'; // Nome do banco conforme .env
 $user = 'meusis41_user';
-$pass = 'SUA_SENHA_AQUI'; // <--- COLOQUE A SENHA DO BANCO AQUI
+$pass = 'SUA_SENHA_AQUI'; // <--- INSIRA A SENHA DO BANCO CRIADO NO CPAINEL AQUI
 $charset = 'utf8mb4';
 
 $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
@@ -102,12 +115,27 @@ $options = [
 ];
 
 try {
+    if ($pass === 'SUA_SENHA_AQUI') {
+        throw new Exception("Configuração Necessária: A senha do banco de dados em 'api.php' ainda está como 'SUA_SENHA_AQUI'. Por favor, edite o arquivo api.php no servidor e insira a senha real.");
+    }
     $pdo = new PDO($dsn, $user, $pass, $options);
-} catch (\PDOException $e) {
+} catch (Throwable $e) {
     http_response_code(500);
     error_log("DB Connection Error: " . $e->getMessage());
-    echo json_encode(['error' => 'Erro de conexão interna: ' . $e->getMessage(), 'success' => false]);
+    echo json_encode(['error' => $e->getMessage(), 'success' => false]);
     exit;
+}
+
+// Auxiliar para verificar se uma coluna existe (evita erro se o usuário não rodou o SQL)
+function columnExists($pdo, $table, $column) {
+    try {
+        $rs = $pdo->query("SELECT * FROM $table LIMIT 1");
+        for ($i = 0; $i < $rs->columnCount(); $i++) {
+            $col = $rs->getColumnMeta($i);
+            if ($col['name'] === $column) return true;
+        }
+    } catch (Exception $e) {}
+    return false;
 }
 
 $method = $_SERVER['REQUEST_METHOD'];
@@ -139,7 +167,52 @@ try {
             }
             echo json_encode($results);
             exit;
-        } elseif ($resource === 'serve_image') {
+        } elseif ($resource === 'users') {
+            // Pegar informações do solicitante
+            $headers = array_change_key_case(getallheaders(), CASE_LOWER);
+            $requesterId = $headers['x-requester-id'] ?? $_SERVER['HTTP_X_REQUESTER_ID'] ?? '';
+            $requesterRole = $headers['x-requester-role'] ?? $_SERVER['HTTP_X_REQUESTER_ROLE'] ?? 'staff';
+
+            $hasCreatedBy = columnExists($pdo, 'users', 'created_by');
+            $cols = "id, username, name, role, is_active, created_at" . ($hasCreatedBy ? ", created_by" : "");
+            $sql = "SELECT $cols FROM users";
+            $where = [];
+            $params = [];
+
+            if ($requesterRole === 'admin') {
+                if ($hasCreatedBy) {
+                    // Admin vê a si mesmo e usuários criados por ele (que não sejam superadmins)
+                    $where[] = "(id = :reqId OR (created_by = :createdBy AND role != 'superadmin'))";
+                    $params['reqId'] = $requesterId;
+                    $params['createdBy'] = $requesterId;
+                } else {
+                    // Fallback: Se não houver a coluna, Admin vê todos que não sejam superadmins
+                    // Isso evita que sumam usuários novos antes de rodar o SQL
+                    $where[] = "(id = :reqId OR role != 'superadmin')";
+                    $params['reqId'] = $requesterId;
+                }
+            } elseif ($requesterRole !== 'superadmin') {
+                // Staff ou outros não devem ver a lista de usuários (ou apenas a si mesmos)
+                $where[] = "id = :reqId";
+                $params['reqId'] = $requesterId;
+            }
+
+            if (!empty($where)) {
+                $sql .= " WHERE " . implode(" AND ", $where);
+            }
+
+            $sql .= " ORDER BY name ASC";
+            
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute($params);
+            $data = $stmt->fetchAll() ?: [];
+
+            foreach ($data as &$u) {
+                $u['is_active'] = (bool)($u['is_active'] ?? true);
+            }
+            echo json_encode($data);
+            exit;
+            } elseif ($resource === 'serve_image') {
             $name = basename($_GET['name'] ?? '');
             $filePath = 'uploads/' . $name;
             if ($name && file_exists($filePath)) {
@@ -239,6 +312,94 @@ try {
             exit;
         }
 
+        if ($resource === 'users') {
+            // Pegar informações do solicitante
+            $headers = array_change_key_case(getallheaders(), CASE_LOWER);
+            $requesterId = $headers['x-requester-id'] ?? $_SERVER['HTTP_X_REQUESTER_ID'] ?? '';
+            $requesterRole = $headers['x-requester-role'] ?? $_SERVER['HTTP_X_REQUESTER_ROLE'] ?? 'staff';
+
+            $userId = $data['id'] ?: null;
+            $newRole = $data['role'] ?: 'admin';
+
+            // Validações de Permissão
+            if ($requesterRole === 'admin') {
+                // Admin não pode criar ou transformar alguém em superadmin
+                if ($newRole === 'superadmin') {
+                    http_response_code(403);
+                    echo json_encode(['error' => 'Permissão negada para atribuir nível SuperAdmin.', 'success' => false]);
+                    exit;
+                }
+
+                // Se estiver atualizando, verificar se o usuário foi criado por ele ou se é ele mesmo
+                if ($userId) {
+                    $chk = $pdo->prepare("SELECT role, created_by FROM users WHERE id = ?");
+                    $chk->execute([$userId]);
+                    $target = $chk->fetch();
+
+                    if ($target) {
+                        if ($userId != $requesterId && $target['created_by'] != $requesterId) {
+                            http_response_code(403);
+                            echo json_encode(['error' => 'Permissão negada. Você só pode gerir usuários criados por você.', 'success' => false]);
+                            exit;
+                        }
+                        // Admin não pode editar superadmin
+                        if ($target['role'] === 'superadmin') {
+                            http_response_code(403);
+                            echo json_encode(['error' => 'Permissão negada. Admins não podem gerir SuperAdmins.', 'success' => false]);
+                            exit;
+                        }
+                    }
+                }
+            } elseif ($requesterRole !== 'superadmin') {
+                http_response_code(403);
+                echo json_encode(['error' => 'Permissão insuficiente para gerir usuários.', 'success' => false]);
+                exit;
+            }
+
+            // Upsert User
+            $params = [
+                'username' => $data['username'],
+                'name' => $data['name'],
+                'role' => $newRole,
+                'is_active' => isset($data['is_active']) ? ($data['is_active'] ? 1 : 0) : 1
+            ];
+
+            $passwordSql = "";
+            if (!empty($data['password'])) {
+                $passwordSql = ", password = :password";
+                $params['password'] = password_hash($data['password'], PASSWORD_DEFAULT);
+            }
+
+            if ($userId) {
+                // UPDATE
+                $sql = "UPDATE users SET username = :username, name = :name, role = :role, is_active = :is_active" . $passwordSql . " WHERE id = :id";
+                $params['id'] = $userId;
+            } else {
+                // INSERT
+                $hasCreatedBy = columnExists($pdo, 'users', 'created_by');
+                if ($hasCreatedBy) {
+                    $params['created_by'] = $requesterId ? (int)$requesterId : null;
+                    $sql = "INSERT INTO users (username, name, role, is_active, created_by" . (!empty($data['password']) ? ", password" : "") . ") 
+                            VALUES (:username, :name, :role, :is_active, :created_by" . (!empty($data['password']) ? ", :password" : "") . ")";
+                } else {
+                    $sql = "INSERT INTO users (username, name, role, is_active" . (!empty($data['password']) ? ", password" : "") . ") 
+                            VALUES (:username, :name, :role, :is_active" . (!empty($data['password']) ? ", :password" : "") . ")";
+                }
+            }
+            
+            try {
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute($params);
+            } catch (PDOException $e) {
+                if ($e->getCode() == 23000) {
+                    throw new Exception("O usuário '" . $data['username'] . "' já existe no sistema.");
+                }
+                throw $e;
+            }
+            echo json_encode(['success' => true]);
+            exit;
+        }
+
         if ($resource === 'products') {
             $sql = "REPLACE INTO products (id, name, ref_code, description, price, stock_quantity, category_id, images_json, specs_json) 
                     VALUES (:id, :name, :ref_code, :description, :price, :stock_quantity, :category_id, :images_json, :specs_json)";
@@ -280,12 +441,20 @@ try {
             $user = $stmt->fetch();
 
             if ($user && password_verify($password, $user['password'])) {
+                // Verificar se o usuário está ativo
+                if (!($user['is_active'] ?? 1)) {
+                    http_response_code(403);
+                    echo json_encode(['error' => 'Esta conta está desativada. Entre em contato com o administrador.', 'success' => false]);
+                    exit;
+                }
+
                 echo json_encode([
                     'success' => true, 
                     'user' => [
                         'id' => $user['id'], 
                         'username' => $user['username'],
-                        'name' => $user['name']
+                        'name' => $user['name'],
+                        'role' => $user['role'] ?? 'admin'
                     ]
                 ]);
             } else {
@@ -330,6 +499,55 @@ try {
             echo json_encode(['success' => true]);
             exit;
         }
+        if ($resource === 'users' && $id) {
+            // Pegar informações do solicitante
+            $headers = array_change_key_case(getallheaders(), CASE_LOWER);
+            $requesterId = $headers['x-requester-id'] ?? '';
+            $requesterRole = $headers['x-requester-role'] ?? 'staff';
+
+            // Validações
+            if ($requesterRole === 'admin') {
+                $chk = $pdo->prepare("SELECT role, created_by FROM users WHERE id = ?");
+                $chk->execute([$id]);
+                $target = $chk->fetch();
+
+                if ($target) {
+                    if ($target['created_by'] != $requesterId) {
+                        http_response_code(403);
+                        echo json_encode(['error' => 'Permissão negada. Você só pode excluir usuários criados por você.', 'success' => false]);
+                        exit;
+                    }
+                    if ($target['role'] === 'superadmin') {
+                        http_response_code(403);
+                        echo json_encode(['error' => 'Permissão negada. Admins não podem excluir SuperAdmins.', 'success' => false]);
+                        exit;
+                    }
+                }
+            } elseif ($requesterRole !== 'superadmin') {
+                http_response_code(403);
+                echo json_encode(['error' => 'Permissão insuficiente.', 'success' => false]);
+                exit;
+            }
+
+            // Prevent deleting the last superadmin
+            if ($requesterRole === 'superadmin') {
+                $chkSuper = $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'superadmin'")->fetchColumn();
+                $targetRole = $pdo->prepare("SELECT role FROM users WHERE id = ?");
+                $targetRole->execute([$id]);
+                $role = $targetRole->fetchColumn();
+                
+                if ($role === 'superadmin' && $chkSuper <= 1) {
+                    http_response_code(400);
+                    echo json_encode(['error' => 'Não é possível excluir o único SuperAdmin do sistema.', 'success' => false]);
+                    exit;
+                }
+            }
+
+            $stmt = $pdo->prepare("DELETE FROM users WHERE id = ?");
+            $stmt->execute([$id]);
+            echo json_encode(['success' => true]);
+            exit;
+        }
     }
 
     // --- SETTINGS ENDPOINTS ---
@@ -349,7 +567,7 @@ try {
     http_response_code(404);
     echo json_encode(['error' => 'Recurso não encontrado', 'success' => false]);
 
-} catch (Exception $e) {
+} catch (Throwable $e) {
     http_response_code(500);
     error_log("API Error: " . $e->getMessage());
     echo json_encode(['error' => $e->getMessage(), 'success' => false]);

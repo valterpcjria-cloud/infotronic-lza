@@ -4,7 +4,7 @@ import Logo from '../Logo';
 import { dbService } from '../../services/dbService';
 
 interface LoginProps {
-  onLogin: (success: boolean) => void;
+  onLogin: (success: boolean, role?: 'superadmin' | 'admin') => void;
   onCancel: () => void;
 }
 
@@ -22,12 +22,16 @@ const Login: React.FC<LoginProps> = ({ onLogin, onCancel }) => {
     try {
       const data = await dbService.login(username, password);
       if (data.success) {
-        onLogin(true);
+        onLogin(true, data.user?.role, data.user?.id);
       } else {
-        setError('Credenciais inválidas. Verifique os dados de acesso.');
+        setError('Credenciais inválidas. Verifique seu usuário e senha.');
       }
     } catch (err: any) {
-      setError(err.message || 'Falha na conexão com o servidor.');
+      if (err.message?.includes('Failed to fetch')) {
+        setError('Não foi possível conectar ao servidor (api.php). Verifique se o backend está online.');
+      } else {
+        setError(err.message || 'Erro de autenticação interno.');
+      }
     } finally {
       setIsLoading(false);
     }
