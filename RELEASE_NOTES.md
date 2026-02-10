@@ -1,4 +1,16 @@
-# Release Notes - v1.0.59 (Latest)
+# Release Notes - v1.0.60 (Latest)
+
+Atualização técnica: Sincronização de arquivos de migração.
+
+## 🚀 Novidades e Correções
+
+### 📂 Banco de Dados
+- **SQL de Migração:** Atualizado o arquivo `settings_migration.sql` para incluir o campo CNPJ documentado nos padrões iniciais.
+
+---
+**Status:** ✅ Estável | **Versão:** 1.0.60 | **Data:** 10/02/2026
+
+# Release Notes - v1.0.59 (Stable)
 
 Novo campo CNPJ com máscara e exibição no rodapé.
 

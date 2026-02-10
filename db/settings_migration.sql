@@ -9,4 +9,5 @@ CREATE TABLE IF NOT EXISTS settings (
 INSERT IGNORE INTO settings (setting_key, setting_value) VALUES 
 ('whatsapp_main', '5511999999999'),
 ('whatsapp_cart', '5511999999999'),
-('address', 'Setor Comercial Norte, Quadra 01\nEdifício Corporate, DF');
+('address', 'Setor Comercial Norte, Quadra 01\nEdifício Corporate, DF'),
+('cnpj', '');
